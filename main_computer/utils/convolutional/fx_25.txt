@@ -1,0 +1,550 @@
+#include <stdlib.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <errno.h>   // for errno
+
+#define MAX_PAYLOAD         50
+
+/* ------------------- Defining constants -------------------------- */
+
+/**
+* Inserted polynoms:
+* (R)LSB  (L)MSB
+* 1010 0111
+* 1011 1001
+* 1101 1011
+* 1111 1101
+*
+const uint8_t POLYS[4] = {229, 157, 219, 191};*/
+
+/* ------------------------------------------------------------------ */
+
+/* ------------------- Defining functions -------------------------- */
+
+/**
+ * @brief Function to get the XOR operation between the current bit of the 'byte_to_check'
+ *        and the 'pos' bit of the same received byte according to 'poly'
+**/
+uint8_t shiftXOR(uint8_t poly, uint8_t memory, uint8_t pos, uint8_t curr_result);
+
+/**
+* @brief Function to insert into memory one bit of a register 'stream'
+*         Starting from MSB until LSB
+**/
+uint8_t insertMemory(uint8_t stream, uint8_t memory);
+
+/**
+* @brief Function to group in one variable the encoded bits
+**/
+uint32_t orderEncoded(uint8_t results[4], uint32_t encoded);
+
+/**
+* @brief Convolutional 1/4 encoding of a byte with fixed polynomials with K=8
+**/
+uint32_t encodeByte(uint8_t byte_to_encode, uint8_t init);
+
+/**
+* @brief Return possible netx memory (state).
+**/
+uint8_t get_possible_memory(uint8_t inserBit, uint8_t memory);
+
+/**
+* @brief Get the next two possible branches of the Viterbi (4 bits per node)
+**/
+uint8_t get_two_possibilities(uint8_t current_memory);
+
+/**
+ * @brief Get the next possible result given a memory
+ **/
+uint8_t encode_to_possible_results(uint8_t possible_memory, uint8_t possible_results);
+
+uint8_t get_hamming_distance(uint8_t received_4bits, uint8_t possible_results);
+
+uint8_t decide_0_or_1(uint8_t possibilities, uint8_t four_bits, uint8_t memory);
+
+uint8_t return_2_decoded_bits(uint8_t received_byte, uint8_t current_memory);
+
+uint8_t reverse(uint8_t b);
+
+uint8_t decodeByte(uint32_t encoded, uint8_t init);
+
+uint8_t convertToUint8(char* str);
+
+uint32_t convertToUint32(char* str);
+
+uint8_t convertToUint8Hex(char* str);
+
+uint32_t convertToUint32Hex(char* str);
+
+uint8_t convertToUint8Hex(char* str);
+
+uint16_t residueCRC(uint8_t init, uint8_t byte_to_check);
+
+/* ------------------------------------------------------------------ */
+
+const uint16_t CRC_POLY = 0x9eb2;
+
+/**
+* Inserted polynoms:
+* (R)LSB  (L)MSB
+* 1010 0111
+* 1011 1001
+* 1101 1011
+* 1111 1101
+**/
+const uint8_t POLYS[4] = {229, 157, 219, 191};
+
+uint8_t payload_fx[MAX_PAYLOAD];
+
+uint8_t shiftXOR(uint8_t poly, uint8_t memory, uint8_t pos, uint8_t curr_result){
+    uint8_t xorPoly = poly;
+    uint8_t xorByte = memory;
+    if (pos > 0){
+        xorPoly = poly << pos;
+        xorByte = memory << pos;
+    }
+    uint8_t xor = xorPoly & 128;
+    if (xor == 128) {
+        if (curr_result == 255) {
+            curr_result = xorByte & 128;
+            return curr_result >> 7;
+        } else {
+            curr_result ^= ((xorByte & 128) >> 7);
+            return curr_result;
+        }
+    } else {
+        return curr_result;
+    }
+}
+
+uint8_t insertMemory(uint8_t stream, uint8_t memory) {
+    memory = memory >> 1;                                           // Moves actual memory to right
+    uint8_t check_bit = stream & 128;
+    if (check_bit == 128) {
+        memory ^= (-1 ^ memory) & (1 << 7);
+    } else {
+        memory ^= (-0 ^ memory) & (1 << 7);
+    }
+    return memory;
+}
+
+uint32_t orderEncoded(uint8_t results[4], uint32_t encoded) {
+    uint8_t i;
+    uint32_t new_encoded = encoded << 4;                            // Move already encoded bits to make room to new ones
+    for (i = 0; i < 4; i++) {                                       // Put new bits in order
+        if (results[i] == 1) {
+            new_encoded ^= (-1 ^ new_encoded) & (1 << (3 - i));
+        } else {
+            new_encoded ^= (-0 ^ new_encoded) & (1 << (3 - i));
+        }
+    }
+    return new_encoded;
+}
+
+uint32_t encodeByte(uint8_t byte_to_encode, uint8_t init) {
+    uint8_t result[4];                              // Array to store each result of that particular memory xored
+    static uint8_t memory;                          // Memory (window) to store K=8. Static to keep past memory
+    uint32_t encoded = 0;                           // Result to return
+    uint8_t stream = byte_to_encode;                // Received stream
+    uint8_t i, j, k;
+
+    if (init == 1) {                                // To restore memory to initial state
+        memory = 0;
+    }
+
+    for (i = 0; i < 8; i++) {                       // Iterate each bit in byte (stream)
+        memory = insertMemory(stream, memory);      // Move corresponding bit to memory
+        stream = stream << 1;                       // Move to next bit to encode
+        for (k = 0; k < 4; k++) {                   // Return to initial states resulting bits
+            result[k] = 255;
+        }
+        for (j = 0; j < 8; j++) {                   // Iterate over the whole memory (XOR bit per bit in memory)
+            for (k = 0; k < 4; k++) {               // Code with the 4 specified polynomials
+                result[k] = shiftXOR(POLYS[k], memory, j, result[k]);
+            }
+        }
+        encoded = orderEncoded(result, encoded);    // Append to result last 4 resulting bits
+    }
+    return encoded;
+}
+
+uint8_t get_possible_memory(uint8_t insertBit, uint8_t memory) {
+    memory = memory >> 1;                           // Moves actual memory to right
+
+    if (insertBit == 1) {                           // Insert one or zero to the memory
+        memory ^= (-1 ^ memory) & (1 << 7);
+    }
+    else {
+        memory ^= (-0 ^ memory) & (1 << 7);
+    }
+
+    return memory;                                  // Return the result with new 0 or 1
+}
+
+uint8_t get_two_possibilities(uint8_t current_memory) {
+    uint8_t possible_results = 0;
+
+    uint8_t poss_memory1 = get_possible_memory((uint8_t)1, current_memory);
+    uint8_t poss_memory0 = get_possible_memory((uint8_t)0, current_memory);
+
+    possible_results = encode_to_possible_results(poss_memory0, possible_results);
+    possible_results = encode_to_possible_results(poss_memory1, possible_results);
+
+    return possible_results;
+}
+
+uint8_t encode_to_possible_results(uint8_t possible_memory, uint8_t possible_results) {
+    uint8_t result[4] = {255, 255, 255, 255};
+    uint8_t i, j;
+
+    for (i = 0; i < 8; i++) {                   // Iterate over the whole memory (XOR bit per bit in memory)
+        for (j = 0; j < 4; j++) {               // Code with the 4 specified polynomials
+            result[j] = shiftXOR(POLYS[j], possible_memory, i, result[j]);
+        }
+    }
+    return orderEncoded(result, possible_results);  // Append result to last 4 possible bits in possible_results
+}
+
+uint8_t get_hamming_distance(uint8_t received_4bits, uint8_t possible_result) {
+    /* Hamming distance (weight) is the number of 1s resulting in an XOR operation */
+    uint8_t to_count = received_4bits ^ possible_result;
+    uint8_t counter = 0;
+    uint8_t i;
+    /* Iterate over the result of the XOR (4 bits) */
+    for (i = 0; i < 4; i++) {
+        // AND operation to check if the ith bit is 1
+        if ((to_count & (uint8_t)1 << i) >> i == 1) {
+            counter = counter + 1;
+        }
+    }
+    return counter;
+}
+
+uint8_t decide_0_or_1(uint8_t possibilities, uint8_t four_bits, uint8_t memory) {
+    uint8_t hamming0 = get_hamming_distance(((possibilities >> 4) & 15), four_bits);
+    uint8_t hamming1 = get_hamming_distance((possibilities & 15), four_bits);
+    if (hamming0 > hamming1) {
+        return get_possible_memory((uint8_t)1, memory);
+    } else if (hamming1 > hamming0) {
+        return get_possible_memory((uint8_t)0, memory);
+    } else {
+        /* random int between 0 and 1*/
+        int r = rand() % 2;
+        if (r == 0){
+            return get_possible_memory((uint8_t)0, memory);
+        } else {
+            return get_possible_memory((uint8_t)1, memory);
+        }
+    }
+}
+
+uint8_t return_2_decoded_bits(uint8_t received_byte, uint8_t current_memory) {
+    uint8_t possibilities = 0;
+
+    possibilities = get_two_possibilities(current_memory);
+    current_memory = decide_0_or_1(possibilities, ((received_byte >> 4) & 15), current_memory);
+    
+    possibilities = get_two_possibilities(current_memory);
+    current_memory = decide_0_or_1(possibilities, (received_byte & 15), current_memory);
+
+    return current_memory;
+}
+
+uint8_t reverse(uint8_t b) {
+    b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
+    b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
+    b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
+    return b;
+}
+
+uint8_t decodeByte(uint32_t encoded, uint8_t init) {
+    static uint8_t memory;
+    uint8_t i;
+    
+    if (init == 1) {
+        memory = 0;
+    }
+
+    for (i = 4; i > 0; i--) {
+        memory = return_2_decoded_bits((uint8_t)(encoded >> 8 * (i - 1)), memory);
+    }
+
+    return reverse(memory);
+}
+
+uint8_t convertToUint8(char* str){
+    char *p;
+    uint8_t num;
+
+    errno = 0;
+    long conv = strtol(str, &p, 10);
+
+    // Check for errors: e.g., the string does not represent an integer
+    // or the integer is larger than int
+    if (errno != 0 || *p != '\0' || conv > 255) {
+        printf("Problem converting string to integer: %s\n", str);
+        exit(EXIT_FAILURE);
+    } else {
+        // No error
+        num = conv;
+    }
+
+    return num;
+}
+
+uint32_t convertToUint32(char* str){
+    char *p;
+    uint32_t num;
+
+    errno = 0;
+    long conv = strtol(str, &p, 10);
+
+    // Check for errors: e.g., the string does not represent an integer
+    // or the integer is larger than int
+    if (errno != 0 || *p != '\0' || conv > 4294967295) {
+        printf("Problem converting string to integer: %s\n", str);
+        exit(EXIT_FAILURE);
+    } else {
+        // No error
+        num = conv;
+    }
+    return num;
+}
+
+uint8_t convertToUint8HexX(char* str){
+    char *p;
+    uint8_t num;
+
+    errno = 0;
+    long conv = strtol(str, &p, 0);
+
+    // Check for errors: e.g., the string does not represent an integer
+    // or the integer is larger than int
+    if (errno != 0 || *p != '\0' || conv > 255) {
+        printf("Problem converting string to integer: %s\n", str);
+        exit(EXIT_FAILURE);
+    } else {
+        // No error
+        num = conv;
+    }
+
+    return num;
+}
+
+uint8_t convertToUint8Hex(char* str){
+    char *p;
+    uint8_t num;
+
+    errno = 0;
+    long conv = strtol(str, &p, 16);
+
+    // Check for errors: e.g., the string does not represent an integer
+    // or the integer is larger than int
+    if (errno != 0 || *p != '\0' || conv > 255) {
+        printf("Problem converting string to integer: %s\n", str);
+        exit(EXIT_FAILURE);
+    } else {
+        // No error
+        num = conv;
+    }
+
+    return num;
+}
+
+uint32_t convertToUint32Hex(char* str){
+    char *p;
+    uint32_t num;
+
+    errno = 0;
+    long conv = strtol(str, &p, 0);
+
+    // Check for errors: e.g., the string does not represent an integer
+    // or the integer is larger than int
+    if (errno != 0 || *p != '\0' || conv > 4294967295) {
+        printf("Problem converting string to integer: %s\n", str);
+        exit(EXIT_FAILURE);
+    } else {
+        // No error
+        num = conv;
+    }
+    return num;
+}
+
+uint16_t residueCRC(uint8_t init, uint8_t byte_to_check) {
+    static uint16_t crc; /* CRC value is 16bit */
+    uint8_t i = 0;
+
+    if (init == 1){
+        crc = 0;
+    }
+
+    crc ^= (uint16_t)(byte_to_check << 8); /* move byte into MSB of 16bit CRC */
+    // 8 iterations to get from 16 to 8
+    for (i = 8; i>0; i--) {
+        // If bit 15 is one do CRC otherwise move one space left
+        if ((crc & 0x8000) != 0) {
+            crc = (uint16_t)((crc << 1) ^ CRC_POLY);
+        }
+        else {
+            crc <<= 1;
+        }
+    }
+
+    return crc;
+}
+
+int main(int argc, char *argv[]){
+
+    if (argc < 2 || argc > (MAX_PAYLOAD + 2)){
+        printf("Invalid argument numbers\n");
+        exit(EXIT_FAILURE);
+    }
+
+    uint8_t j, i;
+
+    uint8_t convert_form = convertToUint8(argv[1]);
+    uint8_t payload_tot_size = (argc - 2);
+
+    for (j=2; j<argc; j++){
+        
+        char* original = argv[j];
+
+        uint8_t payload = 0;
+        if (convert_form == 1){
+            payload = convertToUint8HexX(original);
+        } else if (convert_form == 2){
+            payload = convertToUint8Hex(original);
+        } else{
+            payload = convertToUint8(original);
+        }
+
+        payload_fx[j-2] = payload;
+    }
+
+    /******************************* CRCing ******************************************/
+    // Destination address must match satellite's
+    residueCRC((uint8_t)1, (uint8_t)0x1a);
+    residueCRC((uint8_t)0, (uint8_t)0x1b);
+    residueCRC((uint8_t)0, (uint8_t)0x1c);
+    residueCRC((uint8_t)0, (uint8_t)0x1d);
+    residueCRC((uint8_t)0, (uint8_t)0x1e);
+    residueCRC((uint8_t)0, (uint8_t)0x1f);
+    residueCRC((uint8_t)0, (uint8_t)0xe0);
+    // Send repeater's address. (The final bit is NOT 1)
+    // Comment to test
+    residueCRC((uint8_t)0, (uint8_t)0x1a);
+    residueCRC((uint8_t)0, (uint8_t)0x1b);
+    residueCRC((uint8_t)0, (uint8_t)0x1a);
+    residueCRC((uint8_t)0, (uint8_t)0x1b);
+    residueCRC((uint8_t)0, (uint8_t)0x1a);
+    residueCRC((uint8_t)0, (uint8_t)0x1b);
+    residueCRC((uint8_t)0, (uint8_t)0x12);
+    // Send final source address. (The final bit is 1)
+    residueCRC((uint8_t)0, (uint8_t)0x1a);
+    residueCRC((uint8_t)0, (uint8_t)0x1a);
+    residueCRC((uint8_t)0, (uint8_t)0x1a);
+    residueCRC((uint8_t)0, (uint8_t)0x1a);
+    residueCRC((uint8_t)0, (uint8_t)0x1a);
+    residueCRC((uint8_t)0, (uint8_t)0x1a);
+    residueCRC((uint8_t)0, (uint8_t)0x01);
+    // Set control byte
+    residueCRC((uint8_t)0, (uint8_t)0x00);
+    // Set PID byte
+    residueCRC((uint8_t)0, (uint8_t)0xf0);
+    // Information frames have the LSB in 0 (payload)
+    uint16_t crc_result;                        // Last result of for would be the definitve one
+    for (i=0; i<payload_tot_size; i++){
+        crc_result = residueCRC((uint8_t)0, payload_fx[i]);
+    }
+
+    /****************************************************************************/
+
+    /******************************* Encoding ******************************************/
+
+    uint32_t res;
+
+    printf("\n");
+
+    // Printing FX.25 init flag
+    printf("0x7e 0x7e 0x7e 0x7e ");
+    
+    // Printing correlation tag without CRC and without encoding
+    printf("0x06 0xc7 0xf4 0xe8 0x01 0x02 0x21 0x93 ");
+
+     // Init flag
+    res = encodeByte((uint8_t)0x7e, (uint8_t)1);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    // Destination address must match satellite's
+    res = encodeByte((uint8_t)0x1a, (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    res = encodeByte((uint8_t)0x1b, (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    res = encodeByte((uint8_t)0x1c, (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    res = encodeByte((uint8_t)0x1d, (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    res = encodeByte((uint8_t)0x1e, (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    res = encodeByte((uint8_t)0x1f, (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    res = encodeByte((uint8_t)0xe0, (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    // Send repeater's address. (The final bit is NOT 1)
+    // Comment to test
+    res = encodeByte((uint8_t)0x1a, (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    res = encodeByte((uint8_t)0x1b, (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    res = encodeByte((uint8_t)0x1a, (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    res = encodeByte((uint8_t)0x1b, (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    res = encodeByte((uint8_t)0x1a, (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    res = encodeByte((uint8_t)0x1b, (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    res = encodeByte((uint8_t)0x12, (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    // Send final source address. (The final bit is 1)
+    res = encodeByte((uint8_t)0x1a, (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    res = encodeByte((uint8_t)0x1a, (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    res = encodeByte((uint8_t)0x1a, (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    res = encodeByte((uint8_t)0x1a, (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    res = encodeByte((uint8_t)0x1a, (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    res = encodeByte((uint8_t)0x1a, (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    res = encodeByte((uint8_t)0x01, (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    // Set control byte
+    res = encodeByte((uint8_t)0x00, (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    // Set PID byte
+    res = encodeByte((uint8_t)0xf0, (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    // Information frames have the LSB in 0 (payload)
+    for (i=0; i<payload_tot_size; i++){
+        res = encodeByte(payload_fx[i], (uint8_t)0);
+        printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    }
+    // Set CRC
+    res = encodeByte(((crc_result >> 8) & 255), (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    res = encodeByte((crc_result & 255), (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+    // Set AX.25 finish
+    res = encodeByte((uint8_t)0x7e, (uint8_t)0);
+    printf("0x%02x 0x%02x 0x%02x 0x%02x ", ((res >> 24) & 255), ((res >> 16) & 255), ((res >> 8) & 255), (res & 255));
+
+    // Printing FX.25 end flag
+    printf("0x7e 0x7e ");
+
+    /****************************************************************************************/
+
+    printf("\n");
+    return 0;
+}

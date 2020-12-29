@@ -1,0 +1,56 @@
+
+#include <uart.h>
+#include <msp430.h>
+
+uint8_t rawTemperature;
+int oss = 1;
+
+
+/**
+ * @brief Setup initial configuration for the peripherials board
+ */
+void initBoard(void);
+
+
+int main2(void) {
+
+    // Perform setup
+    initBoard();
+
+    while(1) {
+        // TODO
+    }
+
+    return 0;
+}
+
+void initBoard()
+{
+    //Stop watchdog timer
+    WDTCTL = WDTPW + WDTHOLD;
+    //Stop watchdog timer
+    WDTCTL = WDTPW + WDTHOLD;
+    // Setup internal clock to 1MHz
+    DCOCTL = 0; // Select lowest DCOx and MODx settings
+    BCSCTL1 = CALBC1_1MHZ; // Set DCO
+    DCOCTL = CALDCO_1MHZ;
+    // CCR0 interrupt enabled
+    CCTL0 = CCIE;
+
+
+    /* Configure ports for UART */
+    P1SEL |= RX_PIN | TX_PIN;
+    P1SEL2 |= RX_PIN | TX_PIN;
+    //Configure P1 to output on P1.0
+    P1DIR |= BIT0;
+    uart_init();
+
+    // Enable interruptions
+    __enable_interrupt();
+}
+
+
+void ToggleLED()
+{
+    P1OUT ^= BIT0;
+}

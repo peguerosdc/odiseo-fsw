@@ -1,0 +1,268 @@
+/************************* Beacon ********************************/
+
+C:\Users\alponced\Documents\Odiseo\CPU\Tests\fx_25>decoder 2 15 7e 7e 7e 7e 06 c7 f4 e8 01 02 21 93 0f 5c bc 1d 81 61 cf 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 f5 c4 9d 91 cf 0f 5c bc e7 19 40 43 4e 6e 93 46 70 64 7f b9 d9 13 a3 15 90 ca bf ea 39 b2 3f 00 f5 cb 34 e6 1c ff a9 78 7a 87 29 92 43 3a bf ea 39 b2 30 5c 49 d9 1c ff a9 77 d3 05 3e 0a ec ff a9 77 d3 ff a9 77 d3 05 cb ce 84 a5 a8 fc 25 4d 99 2b 6f ed 7e 7e
+
+********* FX.25 init flag **********
+0x7e 0x7e 0x7e 0x7e
+********* Correlation flag **********
+0x06 0xc7 0xf4 0xe8 0x01 0x02 0x21 0x93
+********* AX.25 init flag **********
+0x7e
+********* Destination address **********
+0x00 0x00 0x00 0x00 0x00 0x00 0x00
+********* Source address **********
+0xe0 0x1f 0x1e 0x1d 0x1c 0x1b 0x1a
+********* Control **********
+0x00
+********* PID **********
+0xf0
+********* Payload **********
+
+Beacon:
+
+Year: 17
+Month: 11
+Day: 26
+Day of the week: 7
+Hours: 1
+Minutes: 3
+Seconds: 1
+Temperature: 259
+
+********* CRC **********
+0xee 0xa1
+********* AX.25 end flag **********
+0x7e
+********* FX.25 end flag **********
+0x7e 0x7e
+
+/*********************************************************************/
+
+
+/************************* Get memory ********************************/
+
+C:\Users\alponced\Documents\Odiseo\CPU\Tests\fx_25>decoder 2 100 7e 7e 7e 7e 06 c7 f4 e8 01 02 21 93 0f 5c bc 1d 81 6e 9c 1a 39 bd 6c 1a 39 bd 6c 1a 39 bd 6c 1a 39 bd 6c 1a 39 bd 6c 1a 39 b2 3f 0f 5c b3 4e 61 cf 0f 5c bc e7 19 40 43 4e 6e 93 46 70 64 7f b9 d9 13 a3 15 90 ca bf ea 39 b2 3f 00 f5 cb 34 e6 1c f0 f5 cb 34 e6 e9 3b 34 e6 e9 3b 34 e6 e9 3b 34 e6 e9 3b 34 e6 e9 3b 34 e6 1c 0a 62 43 35 ec ff 5c bc 1d 7e 7e
+
+********* FX.25 init flag **********
+0x7e 0x7e 0x7e 0x7e
+********* Correlation flag **********
+0x06 0xc7 0xf4 0xe8 0x01 0x02 0x21 0x93
+********* AX.25 init flag **********
+0x7e
+********* Destination address **********
+0x1a 0x1a 0x1a 0x1a 0x1a 0x1a 0x01
+********* Source address **********
+0xe0 0x1f 0x1e 0x1d 0x1c 0x1b 0x1a
+********* Control **********
+0x00
+********* PID **********
+0xf0
+********* Payload **********
+
+Memory:
+0x0f 0x0f 0x0f 0x0f 0x0f 0x0f
+********* CRC **********
+0x02 0xc0
+********* AX.25 end flag **********
+0x7e
+********* FX.25 end flag **********
+0x7e 0x7e
+
+/*********************************************************************/
+
+
+/************************* Memory empty ********************************/
+
+C:\Users\alponced\Documents\Odiseo\CPU\Tests\fx_25>decoder 2 100 7e 7e 7e 7e 06 c7 f4 e8 01 02 21 93 0f 5c bc 1d 81 6e 9c 1a 39 bd 6c 1a 39 bd 6c 1a 39 bd 6c 1a 39 bd 6c 1a 39 bd 6c 1a 39 b2 3f 0f 5c b3 4e 61 cf 0f 5c bc e7 19 40 43 4e 6e 93 46 70 64 7f b9 d9 13 a3 15 90 ca bf ea 39 b2 3f 00 f5 cb 34 e6 e9 3b c1 22 81 61 cf 00 fa 6d 10 2f d5 b7 01 f0 74 d1 83 1d 7e 7e
+
+********* FX.25 init flag **********
+0x7e 0x7e 0x7e 0x7e
+********* Correlation flag **********
+0x06 0xc7 0xf4 0xe8 0x01 0x02 0x21 0x93
+********* AX.25 init flag **********
+0x7e
+********* Destination address **********
+0x1a 0x1a 0x1a 0x1a 0x1a 0x1a 0x01
+********* Source address **********
+0xe0 0x1f 0x1e 0x1d 0x1c 0x1b 0x1a
+********* Control **********
+0x00
+********* PID **********
+0xf0
+********* Payload **********
+
+Memory:
+0xfe 0x00
+********* CRC **********
+0xaa 0x32
+********* AX.25 end flag **********
+0x7e
+********* FX.25 end flag **********
+0x7e 0x7e
+
+/*********************************************************************/
+
+/************************* Error writing in memory ********************************/
+
+C:\Users\alponced\Documents\Odiseo\CPU\Tests\fx_25>decoder 2 100 7e 7e 7e 7e 06 c7 f4 e8 01 02 21 93 0f 5c bc 1d 81 6e 9c 1a 39 bd 6c 1a 39 bd 6c 1a 39 bd 6c 1a 39 bd 6c 1a 39 bd 6c 1a 39 b2 3f 0f 5c b3 4e 61 cf 0f 5c bc e7 19 40 43 4e 6e 93 46 70 64 7f b9 d9 13 a3 15 90 ca bf ea 39 b2 3f 00 f5 cb 34 e6 e9 3b c1 22 81 61 cf 0f 53 1a c3 df d5 b7 01 f0 74 d1 83 1d 7e 7e
+
+********* FX.25 init flag **********
+0x7e 0x7e 0x7e 0x7e
+********* Correlation flag **********
+0x06 0xc7 0xf4 0xe8 0x01 0x02 0x21 0x93
+********* AX.25 init flag **********
+0x7e
+********* Destination address **********
+0x1a 0x1a 0x1a 0x1a 0x1a 0x1a 0x01
+********* Source address **********
+0xe0 0x1f 0x1e 0x1d 0x1c 0x1b 0x1a
+********* Control **********
+0x00
+********* PID **********
+0xf0
+********* Payload **********
+
+Memory:
+0xfe 0x01
+********* CRC **********
+0xaa 0x32
+********* AX.25 end flag **********
+0x7e
+********* FX.25 end flag **********
+0x7e 0x7e
+
+/*********************************************************************/
+
+/************************* Check logs ********************************/
+
+C:\Users\alponced\Documents\Odiseo\CPU\Tests\fx_25>decoder 2 70 7e 7e 7e 7e 06 c7 f4 e8 01 02 21 93 0f 5c bc 1d 81 6e 9c 1a 39 bd 6c 1a 39 bd 6c 1a 39 bd 6c 1a 39 bd 6c 1a 39 bd 6c 1a 39 b2 3f 0f 5c b3 4e 61 cf 0f 5c bc e7 19 40 43 4e 6e 93 46 70 64 7f b9 d9 13 a3 15 90 ca bf ea 39 b2 3f 00 f5 cb 34 e6 1c ff a9 78 7a 87 29 92 43 3a bf ea 39 b2 30 5c 49 d9 1c 0a 97 7d 3f fa 97 88 fb 92 38 b8 26 ce 05 45 87 26 c1 59 f6 c9 bd 6c ef 08 1e f7 c3 ab fe 59 f6 3c 83 93 32 a1 12 a9 03 f8 1e f7 36 9a 5d cd 86 2c 2d a9 f9 95 f4 ba 55 d3 84 d1 76 2c 22 f5 45 88 7a 87 29 92 43 3a bf ea 39 b2 30 5c 49 d9 1c 0a 97 7d 3f fa 97 7d ca 3e 0a ec 05 3e 05 45 87 26 c1 59 f6 c9 bd 6c ef 08 1e f7 c3 ab fe 59 f6 3c 83 93 32 a1 12 a9 03 f8 1e f7 36 9a 5d cd 86 2c 2d a9 f9 95 f4 ba 55 d3 84 d1 76 2c 22 f5 45 88 7a 87 29 92 43 3a bf ea 39 b2 30 5c 49 d9 1c 0a 97 7d 3f 0f a9 78 80 e5 90 c5 19 ce 05 45 87 26 c1 a3 6e 1d 00 81 15 eb 47 8f 4c 1d 7e 7e
+
+********* FX.25 init flag **********
+0x7e 0x7e 0x7e 0x7e
+********* Correlation flag **********
+0x06 0xc7 0xf4 0xe8 0x01 0x02 0x21 0x93
+********* AX.25 init flag **********
+0x7e
+********* Destination address **********
+0x1a 0x1a 0x1a 0x1a 0x1a 0x1a 0x01
+********* Source address **********
+0xe0 0x1f 0x1e 0x1d 0x1c 0x1b 0x1a
+********* Control **********
+0x00
+********* PID **********
+0xf0
+********* Payload **********
+
+Logs:
+
+17
+11
+26
+7
+2
+2
+57
+12
+CheckSensors
+17
+11
+26
+7
+2
+2
+12
+12
+CheckSensors
+17
+11
+26
+7
+2
+1
+27
+12
+C
+********* CRC **********
+0x4c 0xa4
+********* AX.25 end flag **********
+0x7e
+********* FX.25 end flag **********
+0x7e 0x7e
+
+C:\Users\alponced\Documents\Odiseo\CPU\Tests\fx_25>decoder 2 70 7e 7e 7e 7e 06 c7 f4 e8 01 02 21 93 0f 5c bc 1d 81 6e 9c 1a 39 bd 6c 1a 39 bd 6c 1a 39 bd 6c 1a 39 bd 6c 1a 39 bd 6c 1a 39 b2 3f 0f 5c b3 4e 61 cf 0f 5c bc e7 19 40 43 4e 6e 93 46 70 64 7f b9 d9 13 a3 15 90 ca bf ea 39 b2 3f fa 62 b6 0b e6 13 a3 1a 39 bd 6c ef 08 1e f7 c3 ab fe 59 f6 3c 83 93 32 a1 12 a9 03 f8 1e f7 36 9a 5d cd 86 2c 2d a9 f9 95 f4 ba 55 d3 84 d1 76 2c 2d a9 f6 c9 48 5d b6 0b e9 40 4c 1d 7e 7e
+
+********* FX.25 init flag **********
+0x7e 0x7e 0x7e 0x7e
+********* Correlation flag **********
+0x06 0xc7 0xf4 0xe8 0x01 0x02 0x21 0x93
+********* AX.25 init flag **********
+0x7e
+********* Destination address **********
+0x1a 0x1a 0x1a 0x1a 0x1a 0x1a 0x01
+********* Source address **********
+0xe0 0x1f 0x1e 0x1d 0x1c 0x1b 0x1a
+********* Control **********
+0x02
+********* PID **********
+0xf0
+********* Payload **********
+
+Logs:
+heckSensors
+********* CRC **********
+0x68 0xbc
+********* AX.25 end flag **********
+0x7e
+********* FX.25 end flag **********
+0x7e 0x7e
+
+/*********************************************************************/
+
+/************************* Check cleaned logs ********************************/
+
+C:\Users\alponced\Documents\Odiseo\CPU\Tests\fx_25>decoder 2 70 7e 7e 7e 7e 06 c7 f4 e8 01 02 21 93 0f 5c bc 1d 81 6e 9c 1a 39 bd 6c 1a 39 bd 6c 1a 39 bd 6c 1a 39 bd 6c 1a 39 bd 6c 1a 39 b2 3f 0f 5c b3 4e 61 cf 0f 5c bc e7 19 40 43 4e 6e 93 46 70 64 7f b9 d9 13 a3 15 90 ca bf ea 39 b2 3f 00 f5 cb 34 e6 1c ff a9 78 7a 87 29 92 43 3a bf ea 39 b2 30 5c 49 d9 1c 0a 97 7d ca 3e 0a e3 a3 ef 07 b8 26 c1 ac 32 54 d6 c1 59 f9 95 f4 b5 09 6f 63 c8 36 6f 63 32 54 d6 c1 59 f9 60 ca bf 1f 08 1e f7 c3 51 69 24 c6 9a 5d 38 4d ed f5 bf e5 65 f4 b5 f3 02 89 85 55 dc 22 f5 45 88 7a 87 29 92 43 3a bf ea 39 b2 30 5c 49 d9 1c 0a 97 7d ca 3e 0a 16 68 d4 48 d3 0a 62 4c 9c 9b d6 c1 59 f9 95 f4 b5 09 6f 63 c8 36 6f 63 32 5b 7f b6 8a f3 f8 1e f8 65 80 64 8a 72 ed f5 bf e5 65 f4 b5 f3 02 89 85 55 dc d8 97 f3 8c c0 dd 5c 3d f2 08 9f ed 7e 7e
+
+********* FX.25 init flag **********
+0x7e 0x7e 0x7e 0x7e
+********* Correlation flag **********
+0x06 0xc7 0xf4 0xe8 0x01 0x02 0x21 0x93
+********* AX.25 init flag **********
+0x7e
+********* Destination address **********
+0x1a 0x1a 0x1a 0x1a 0x1a 0x1a 0x01
+********* Source address **********
+0xe0 0x1f 0x1e 0x1d 0x1c 0x1b 0x1a
+********* Control **********
+0x00
+********* PID **********
+0xf0
+********* Payload **********
+
+Logs:
+
+17
+11
+26
+7
+2
+12
+25
+13
+CommCleanLogs
+17
+11
+26
+7
+2
+12
+36
+11
+CommGetLogs
+********* CRC **********
+0xac 0xd5
+********* AX.25 end flag **********
+0x7e
+********* FX.25 end flag **********
+0x7e 0x7e
+
+/*********************************************************************/
